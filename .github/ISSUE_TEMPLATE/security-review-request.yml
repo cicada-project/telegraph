@@ -1,0 +1,37 @@
+name: Security review request
+description: Request an independent review of a Telegraph security-design artifact
+title: "[security-review] "
+labels:
+  - security
+body:
+  - type: input
+    id: artifact
+    attributes:
+      label: Artifact path
+      description: Use a repository-relative path and identify the relevant evidence IDs.
+      placeholder: docs/security/<artifact>.md
+    validations:
+      required: true
+  - type: textarea
+    id: threat_model
+    attributes:
+      label: Threat-model scope
+      description: State what the proposed review covers and what it explicitly excludes.
+    validations:
+      required: true
+  - type: textarea
+    id: review_questions
+    attributes:
+      label: Review questions
+      description: List the concrete questions for the independent reviewer.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Submission safety
+      options:
+        - label: This request contains no credentials, tokens, private keys, server addresses, or unredacted logs.
+          required: true
+        - label: This request makes no assertion about end-to-end encryption or message transport.
+          required: true

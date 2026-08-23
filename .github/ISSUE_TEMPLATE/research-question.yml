@@ -1,0 +1,38 @@
+name: Research question
+description: Ask a bounded question for an approved Cicada research gate
+title: "[research] "
+labels:
+  - research
+body:
+  - type: dropdown
+    id: gate
+    attributes:
+      label: Gate
+      options:
+        - R1 Codex extension feasibility
+        - R2 DeepSeek Harness extension feasibility
+        - R3 Reflex rule contract
+        - R4 Telegraph security design
+    validations:
+      required: true
+  - type: textarea
+    id: claim
+    attributes:
+      label: Question or claim
+      description: State one bounded question or claim and why it matters to the gate.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Existing evidence
+      description: Give public links, fixed source references, or read-only reproduction steps. Do not paste secrets or unredacted logs.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and unknowns
+      description: Identify public-versus-internal boundaries, version assumptions, and remaining unknowns.
+    validations:
+      required: true
