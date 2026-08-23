@@ -1,0 +1,181 @@
+name: Rust scaffold
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    name: workspace handoff readiness
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+      full_release_ready: ${{ steps.check.outputs.full_release_ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        name: validate manifest handoff
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import tomllib
+
+          root = tomllib.loads(pathlib.Path("Cargo.toml").read_text())
+          workspace = root.get("workspace", {})
+          metadata = workspace.get("metadata", {}).get("telegraph", {})
+          required = {"protocol", "crypto", "store", "relay", "client", "cli"}
+          expected_names = metadata.get("expected_crates", [])
+          delivered_names = metadata.get("delivered_crates", [])
+          if set(expected_names) != required or len(expected_names) != len(required):
+              raise SystemExit("FAIL: expected_crates metadata must contain exactly the six boundary crates")
+          if len(delivered_names) != len(set(delivered_names)):
+              raise SystemExit("FAIL: delivered_crates metadata is duplicated")
+          if not set(delivered_names).issubset(required):
+              raise SystemExit("FAIL: delivered_crates must be a subset of expected_crates")
+          expected = [f"crates/{name}" for name in expected_names]
+          delivered = [f"crates/{name}" for name in delivered_names]
+          if not delivered:
+              output = pathlib.Path(os.environ["GITHUB_OUTPUT"])
+              summary = pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"])
+              output.write_text("ready=false\nfull_release_ready=false\n")
+              summary.write_text(
+                  "### Workspace handoff\n\n"
+                  "**FAIL/PENDING:** no product crate has been delivered; "
+                  "regular workspace checks are not authorized.\n"
+              )
+              raise SystemExit("FAIL: delivered_crates must contain at least one product crate")
+          if "package" in root:
+              raise SystemExit("FAIL: root package is not allowlisted; workspace must contain only delivered product members")
+          members = {
+              str(member).replace("\\", "/").rstrip("/")
+              for member in workspace.get("members", [])
+          }
+          excluded = {
+              str(member).replace("\\", "/").rstrip("/")
+              for member in workspace.get("exclude", [])
+          }
+          output = pathlib.Path(os.environ["GITHUB_OUTPUT"])
+          summary = pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"])
+          mismatches = []
+          expected_set = set(expected)
+          delivered_set = set(delivered)
+          if members != delivered_set:
+              mismatches.append(
+                  f"workspace members must equal delivered crates; members={sorted(members)}, "
+                  f"delivered={sorted(delivered_set)}"
+              )
+          expected_excluded = expected_set - delivered_set
+          if excluded != expected_excluded:
+              mismatches.append(
+                  f"workspace exclude must equal undelivered expected crates; "
+                  f"exclude={sorted(excluded)}, expected={sorted(expected_excluded)}"
+              )
+          for crate in expected:
+              manifest = pathlib.Path(crate, "Cargo.toml").is_file()
+              member = crate in members
+              is_excluded = crate in excluded
+              should_be_delivered = crate in delivered
+              if should_be_delivered != manifest:
+                  mismatches.append(f"{crate}: delivered/manifest mismatch")
+              if should_be_delivered != member:
+                  mismatches.append(f"{crate}: delivered/member mismatch")
+              if should_be_delivered == is_excluded:
+                  mismatches.append(f"{crate}: delivered/exclude mismatch")
+          if mismatches:
+              raise SystemExit("FAIL: incremental workspace handoff mismatch: " + "; ".join(mismatches))
+
+          full_release_ready = set(delivered) == set(expected)
+          output.write_text(
+              "ready=true\n" + f"full_release_ready={'true' if full_release_ready else 'false'}\n"
+          )
+          summary.write_text(
+              "### Workspace handoff\n\n"
+              f"**READY:** {len(delivered)}/{len(expected)} product manifests are "
+              "present, included as members, and absent from exclude.\n"
+          )
+          print(f"Workspace handoff ready: {len(delivered)}/{len(expected)} product members integrated")
+          PY
+
+  workspace-metadata:
+    name: workspace metadata (Rust 1.85.1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.1
+      - run: cargo metadata --no-deps --format-version 1 --locked
+
+  fmt:
+    name: fmt (Rust 1.85.1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.1
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+      - name: format T0-owned glue explicitly
+        run: |
+          for file in \
+            crates/store/src/lib.rs \
+            crates/store/src/migrations.rs \
+            crates/client/src/lib.rs \
+            crates/cli/src/main.rs; do
+            rustfmt --edition 2024 --check "$file"
+          done
+
+  check:
+    name: check (Rust 1.85.1)
+    needs: readiness
+    if: ${{ needs.readiness.outputs.ready == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.1
+        with:
+          components: clippy
+      - run: cargo metadata --no-deps --format-version 1 --locked
+      - run: cargo check --workspace --locked
+
+  test:
+    name: test (Rust 1.85.1)
+    needs: readiness
+    if: ${{ needs.readiness.outputs.ready == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.1
+      - run: cargo test --workspace --locked
+
+  clippy:
+    name: clippy (Rust 1.85.1)
+    needs: readiness
+    if: ${{ needs.readiness.outputs.ready == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.1
+        with:
+          components: clippy
+      - run: cargo clippy --workspace --all-targets --locked
+
+  full_release_ready:
+    name: full release dependency policy
+    needs: readiness
+    if: ${{ needs.readiness.outputs.full_release_ready == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.1
+      - uses: taiki-e/install-action@cargo-deny
+        with:
+          version: 0.18.3
+      - uses: taiki-e/install-action@cargo-audit
+        with:
+          version: 0.21.2
+      - run: cargo deny check
+      - run: cargo audit

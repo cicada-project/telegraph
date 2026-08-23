@@ -1,0 +1,23 @@
+[package]
+name = "telegraph-protocol"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+description = "Neutral, bounded, schema-specific CBOR framing for Telegraph"
+
+# cbor4ii is deliberately used through its core Encode/Decode traits only.
+# The wire schema below does not use serde, generic maps, or cbor4ii's
+# allocation/std features; all allocation is owned and bounded by this crate.
+[dependencies]
+# MIT licensed; the fixed version keeps the canonical wrapper reproducible.
+cbor4ii = { version = "=1.2.2", default-features = false }
+
+[lints.rust]
+unsafe_code = "forbid"
+rust_2018_idioms = { level = "deny", priority = -1 }
+unused_must_use = "deny"
+
+[lints.clippy]
+all = "warn"
+correctness = "deny"

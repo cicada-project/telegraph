@@ -1,0 +1,10 @@
+# Keep all build/release behavior in Cargo.toml and the pinned toolchain. This
+# file intentionally has no registry replacement, git source, native provider,
+# or network hook.
+[term]
+color = "auto"
+verbose = false
+
+[net]
+retry = 2
+offline = false

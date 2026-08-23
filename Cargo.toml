@@ -1,0 +1,82 @@
+[workspace]
+# This is intentionally a virtual workspace during the T0 handoff window.
+# Boundary crates are named in metadata and excluded until their owners hand
+# over real manifests. Referencing a missing manifest would make every Cargo
+# command fail before T1-T4 can work in isolation.
+resolver = "3"
+members = ["crates/protocol"]
+exclude = [
+    "crates/crypto",
+    "crates/store",
+    "crates/relay",
+    "crates/client",
+    "crates/cli",
+]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+rust_2018_idioms = { level = "deny", priority = -1 }
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+correctness = "deny"
+
+[profile.dev]
+overflow-checks = true
+debug-assertions = true
+
+[profile.test]
+overflow-checks = true
+debug-assertions = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+panic = "unwind"
+overflow-checks = true
+debug = false
+
+# This metadata is the explicit T0-to-crate-task handoff contract. T0 adds
+# delivered product crates to `members` one at a time and regenerates the
+# single root lockfile after each reviewed manifest handoff.
+[workspace.metadata.telegraph]
+scaffold_status = "t0-handoff-partial"
+integration_owner = "T0"
+expected_crates = [
+    "protocol",
+    "crypto",
+    "store",
+    "relay",
+    "client",
+    "cli",
+]
+delivered_crates = ["protocol"]
+excluded_until_manifest_handoff = [
+    "crates/crypto",
+    "crates/store",
+    "crates/relay",
+    "crates/client",
+    "crates/cli",
+]
+handoff_condition = "After each owner hands over a real manifest, T0 adds that product crate to members, removes it from exclude, and regenerates Cargo.lock with the pinned toolchain."
+pre_handoff_checks = [
+    "cargo fmt --check",
+    "cargo metadata --no-deps --format-version 1 --locked",
+    "git diff --check",
+]
+post_handoff_checks = [
+    "cargo fmt --check",
+    "cargo check --workspace --locked",
+    "cargo test --workspace --locked",
+    "cargo clippy --workspace --all-targets --locked",
+    "cargo deny check",
+    "cargo audit",
+]
