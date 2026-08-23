@@ -18,6 +18,7 @@ reviewer: independent-subagent-r1-review
 reviewed_at_utc: "2026-08-23T07:49:09Z"
 design_gate: accept_with_conditions
 implementation_authorization: blocked
+authorized_scope: t0_t1_neutral_scaffold_only
 ---
 
 # R1 — Codex CLI extension feasibility
@@ -37,12 +38,12 @@ The R1 decision is constrained by the current MVP contract:
 - exactly two equal Codex CLI clients;
 - text-only messages, pairing, long-term client/device identity, opaque local thread endpoints, delivery/retry semantics, and local audit;
 - a future central relay may handle only ciphertext, offline mailbox state, and delivery receipts, with physical deployment independent from this repository;
-- no parent/child or Master/Subagent semantics, attachments, files, shared workspaces, command execution, automatic task hand-off, group chat, external chat platforms, DeepSeek/other-Harness compatibility, Web3, or generic cross-Harness IR;
-- no implementation, relay, cryptographic, or deployment work before the applicable research and independent-review gates.
+- no parent/child or Master/Subagent semantics, attachments, files, shared workspaces, automatic task hand-off, group chat, external chat platforms, DeepSeek/other-Harness compatibility, Web3, or generic cross-Harness IR; Telegraph provides no caller-controlled command, file, or tool operation; the stable SDK may transitively use its bundled stdio runtime, and Codex may use tools according to the endpoint's local policy;
+- no relay, client, cryptographic, provider, or deployment work before the applicable implementation gate and independent review; only the reviewed T0/T1 neutral scaffold is currently authorized.
 
 ## Executive conclusion
 
-The preferred companion route is the stable Python `openai-codex` SDK with its pinned CLI runtime, controlling a companion-owned Codex thread. Where the SDK does not expose a required method, the companion may research the documented Codex App Server JSON-RPC surface over local stdio or a local socket. This is a bounded candidate route, not a final support promise.
+The preferred companion route is the stable Python `openai-codex` SDK with its pinned CLI runtime, controlling a companion-owned Codex thread. The SDK may transitively use its matching bundled stdio runtime; that runtime path is not a Telegraph App Server API. Where the SDK does not expose a required method, the companion may research the documented Codex App Server JSON-RPC surface over local stdio or a local socket. This is a bounded candidate route, not a final support promise.
 
 The TypeScript SDK is evaluated separately. Its current registry publication is useful evidence for maturity and API shape, but it is not substituted for the Python SDK recommendation or treated as a minimum version.
 
@@ -52,7 +53,7 @@ Attaching to an arbitrary already-running TUI session is **unknown/defer**. The 
 
 Observation or structured handling of `429`-class events remains unknown. The R1 gate text mentions `Recover`, which appears to be Reflex-specific; it is not evidence for Telegraph.
 
-The independent review by `independent-subagent-r1-review`, recorded at `2026-08-23T07:49:09Z`, has disposition **accept with conditions**. It corroborates the bounded documented method-surface, registry, and local-baseline evidence; it does not establish arbitrary existing-TUI attachment, user-visible peer injection, `429` observation, or any encryption property. The local workstation observations remain C-level experimental evidence only, and this disposition does not authorize implementation.
+The independent review by `independent-subagent-r1-review`, recorded at `2026-08-23T07:49:09Z`, has disposition **accept with conditions**. It corroborates the bounded documented method-surface, registry, and local-baseline evidence; it does not establish arbitrary existing-TUI attachment, user-visible peer injection, `429` observation, or any encryption property. The local workstation observations remain C-level experimental evidence only, and there is no provider/crypto/client/relay/bridge/deploy implementation authorization; only T0/T1 neutral scaffold is authorized by a later ADR gate.
 
 ## Claim and evidence ledger
 
@@ -132,9 +133,9 @@ The method surface is therefore useful for a companion-owned thread. It does not
 
 The product contract calls for a native Messenger plugin. R1 can recommend only **`companion path (conditional)`** on the evidence above:
 
-1. If the product owner accepts a companion-owned Codex client as satisfying the MVP boundary, the Python SDK plus pinned runtime is the preferred first experiment, with direct App Server stdio/local socket only where necessary.
+1. The product owner approved the companion-owned Codex client route for planning on 2026-08-23. The Python SDK plus pinned runtime is the preferred first experiment; direct App Server stdio/local socket remains research input only.
 2. If “native” means an official native Messenger package with a supported external ingress API, the current evidence does not establish it; the gate remains deferred.
-3. Neither decision authorizes transport, pairing, relay, or cryptographic implementation.
+3. Neither decision provides provider/crypto/client/relay/bridge/deploy implementation authorization; only T0/T1 neutral scaffold is authorized by a later ADR gate.
 
 ## Negative boundaries: plugins, hooks, skills, MCP, and remote control
 
@@ -165,7 +166,7 @@ This is the initial C-level experiment baseline: local CLI `0.141.0`, Python SDK
 
 ## Independent review disposition
 
-**Disposition: accept with conditions.** The independent R1 review finds the technical evidence loop closed for the documented method surface, registry observations, and local baseline. This disposition does not authorize implementation. Arbitrary existing-TUI attachment, user-visible peer injection, `429` observation, and encryption remain unknown. Before any implementation task, the SDK/runtime pin must be fixed and independently reviewed, and the product owner must accept the `companion path (conditional)` route (or choose a native route/defer). R4 is a separate gate with its own independent-review disposition of **accept with conditions**; its open conditions remain implementation blockers.
+**Disposition: accept with conditions.** The independent R1 review finds the technical evidence loop closed for the documented method surface, registry observations, and local baseline. There is no provider/crypto/client/relay/bridge/deploy implementation authorization; only T0/T1 neutral scaffold is authorized by a later ADR gate. Arbitrary existing-TUI attachment, user-visible peer injection, `429` observation, and encryption remain unknown. The product owner approved the `companion path (conditional)` route for planning on 2026-08-23; before any bridge implementation, the SDK/runtime pin must be fixed and independently reviewed. R4 is a separate gate with its own independent-review disposition of **accept with conditions**; its open conditions remain implementation blockers.
 
 ## Risks and open decisions
 
@@ -181,4 +182,4 @@ This is the initial C-level experiment baseline: local CLI `0.141.0`, Python SDK
 
 ## Claims explicitly not made
 
-This report does not claim a minimum supported Codex version, a stable public API for arbitrary TUI attachment, peer-message injection into existing TUI sessions, structured `429` observation, or acceptance of WebSocket/Remote Control/MCP low-level routes. It makes no assertion about end-to-end encryption. It does not authorize implementation.
+This report does not claim a minimum supported Codex version, a stable public API for arbitrary TUI attachment, peer-message injection into existing TUI sessions, structured `429` observation, or acceptance of WebSocket/Remote Control/MCP low-level routes. It makes no assertion about end-to-end encryption. It provides no provider/crypto/client/relay/bridge/deploy implementation authorization; only T0/T1 neutral scaffold is authorized by a later ADR gate.

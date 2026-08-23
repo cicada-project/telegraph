@@ -12,6 +12,7 @@ claim_ids:
   - C-R4-008
   - C-R4-009
   - C-R4-010
+  - C-R4-011
 classification: independent-review
 source_type: mixed-primary
 source_locator: "docs/security/R4-telegraph-security-design.md"
@@ -25,32 +26,33 @@ reproduction:
 artifact_sha256: null
 status: corroborated
 reviewer: independent-subagent-r4-security-review
-reviewed_at_utc: "2026-08-23T08:08:38Z"
+reviewed_at_utc: "2026-08-23T10:49:41.9846936Z"
 design_gate: accept_with_conditions
-implementation_authorization: blocked_reject
+implementation_authorization: t0_t1_neutral_scaffold_only
 security_claim: E2EE_not_claimed
 ---
 
 # Telegraph R4 security design
 
-**Status:** Draft
+**Status:** Conditional design
 **Review:** Design gate accepted with conditions
 **Security claim:** E2EE not claimed
-**Implementation gate:** blocked/reject; conditions remain open
-**Scope:** research/design only; no implementation, deployment, or cryptographic code
+**Implementation gate:** T0/T1 neutral scaffold only; relay, client, crypto/provider, bridge, integration, and deployment remain blocked
+**Scope:** governance/design plus the reviewed neutral scaffold; no relay, client, deployment, or cryptographic implementation
 
 ## Independent review disposition
 
 - **Reviewer:** `independent-subagent-r4-security-review`
-- **Reviewed at (UTC):** `2026-08-23T08:08:38Z`
+- **Reviewed at (UTC):** `2026-08-23T10:49:41.9846936Z`
 - **Design gate:** accept with conditions
-- **Implementation authorization:** blocked/reject; this disposition does not authorize implementation
+- **Implementation authorization:** T0/T1 neutral scaffold only; relay, client, crypto/provider, bridge, integration, and deployment remain blocked pending dependency/storage closure and the next implementation gate
 - **Security claim:** E2EE not claimed
+- **ADR 0002 disposition:** accept with conditions; exact profile reviewed, implementation remains blocked
 
-The reviewer accepted the design gate conditionally. The following conditions are not closed and remain implementation blockers:
+The independent reviewer accepted the R4 design and ADR 0002's exact vodozemac Olm v1 profile with conditions. The route and design are recorded, but dependency/license/provider closure, secure storage and persistence evidence, and the next implementation gate remain open. The following conditions remain open:
 
-1. Approve the exact protocol profile, implementation library, license, external-use/support posture, pinned commit, and dependency audit.
-2. Approve an ADR for the exact transcript encoding, domain separation, handshake-derived confirmation key, and confirmation MAC construction.
+1. Close the exact vodozemac implementation library, license, external-use/support posture, pinned commit, and dependency audit.
+2. Close the exact deterministic transcript and session-authenticated confirmation-record binding evidence, including secure storage and persistence review.
 3. Obtain product approval for authenticated-channel safety-code UX, including manual/telephone/independent-QR comparison and the complete transcript-hash QR.
 4. Approve the three receipt meanings, encryption/idempotency rules, message/pairing TTLs, user-code format, and rate-limit/expiry/deletion defaults.
 5. Define and review the secure rollback anchor, crash semantics, device revocation, identity rotation, and per-channel repair policy.
@@ -58,19 +60,21 @@ The reviewer accepted the design gate conditionally. The following conditions ar
 
 ## 1. Decision summary
 
-The proposed R4 protocol is a Signal-style asynchronous secure-messaging profile:
+The proposed R4 protocol records the exact classical vodozemac Olm v1 profile selected by ADR 0002, reviewed with conditions:
 
 - device-level long-term identity key per OS user/Telegraph daemon;
 - opaque local thread endpoints, with the real Codex thread ID kept inside the client;
-- one independent channel, bootstrap/prekey state, and Double Ratchet state for every thread-to-thread pair;
+- one independent channel, vodozemac Olm Account/Session bootstrap, and Double Ratchet state for every thread-to-thread pair;
 - relay-mediated discovery and store-and-forward only;
 - relay-generated high-entropy `device_code` for client polling and a separate short-lived human `user_code` entered by the second client;
 - activation only after both device identity keys, endpoint commitments, channel ID, prekeys, protocol version, and pairing transcript produce the same safety code and both sides confirm it;
+- bidirectional session-authenticated confirmation inner records, each binding the canonical transcript hash, role, direction, decision, and version; no extracted root or independently created MAC key;
+- explicit Olm v1 authentication limits: an 8-byte message tag, a persisted invalid-auth attempt budget, and channel quarantine on budget exhaustion; experimental v2 is not used;
 - transport acknowledgements kept separate from encrypted end-to-end receipts.
 
-The recommendation is conditional. Selecting a concrete Signal/PQXDH implementation, license, supported API, and maintenance posture is an implementation-blocking decision. In particular, the official `signalapp/libsignal` repository is AGPLv3 and says that use outside Signal is unsupported; it cannot be selected for Telegraph without an explicit legal, support, and maintenance decision. See the fixed [libsignal v0.101.0 source](https://github.com/signalapp/libsignal/tree/v0.101.0) (accessed 2026-08-23; release short commit `b056faa`, full commit must be resolved before implementation).
+ADR 0002 records vodozemac 0.10.0 with explicit `SessionConfig::version_1()` as the selected baseline, and its exact profile has an independent-review disposition of accept with conditions. Implementation remains limited to T0/T1 neutral scaffolding pending dependency/storage closure and the next gate. This is classical Olm-style 3DH plus Double Ratchet, not Signal, X3DH, PQXDH, Sesame, or a post-quantum protocol. The official `signalapp/libsignal` repository remains an unselected alternative because it is AGPLv3 and says that use outside Signal is unsupported; it cannot be selected for Telegraph without an explicit legal, support, and maintenance decision. See the fixed [libsignal v0.101.0 source](https://github.com/signalapp/libsignal/tree/v0.101.0) (accessed 2026-08-23; release short commit `b056faa`, full commit must be resolved before implementation).
 
-The only conditional permissive implementation candidate found in this review is [vodozemac 0.10.0](https://github.com/matrix-org/vodozemac/tree/0.10.0), an Apache-2.0 pure-Rust Olm/Double Ratchet implementation. It is not Signal X3DH/PQXDH/Sesame and must not be represented as equivalent. If the product requires exact Signal/PQXDH semantics, R4 remains deferred until a supported, permissively licensed implementation is approved.
+The selected [vodozemac 0.10.0](https://github.com/matrix-org/vodozemac/tree/0.10.0) baseline is Apache-2.0 and pure Rust. Its full pinned commit, dependency/license closure, `default-features = false` choice, required Linux builds, persistence tests, audit scope, and provider/storage closure remain implementation gates. It is not Signal X3DH/PQXDH/Sesame and must not be represented as equivalent. If the product requires exact Signal/PQXDH semantics, implementation must be deferred and ADR 0002 reopened rather than silently substituting another profile.
 
 This document does not authorize implementation or claim that Telegraph currently provides E2EE.
 
@@ -289,7 +293,7 @@ Active channel      -> REPAIR_REQUIRED | CLOSED | REVOKED
 5. A and B exchange the public device identity keys, endpoint commitments, channel ID, signed prekey/one-time prekey material or hashes, protocol profile, and transcript nonces.
 6. Both derive the same transcript hash and short human safety code.
 7. Both clients display the safety code/fingerprint. Both must compare it over an authenticated channel independent of the relay: face-to-face, a telephone call, or an independently transferred QR. Clicking “confirm” in the relay UI alone does not count. The exact UX is a product approval item.
-8. Each side derives a handshake confirmation key and sends a MAC over the canonical transcript plus its role and confirmation decision. Each client verifies the peer MAC locally. Only then does the relay consume both codes and do clients create the channel ratchet state.
+8. Each side sends a canonical confirmation inner record through the vodozemac Olm v1 `Session`; the peer must successfully decrypt it and verify the canonical transcript hash, role, direction, decision, and version locally. The library does not expose a root key, and Telegraph does not extract or create a separate MAC key. Only then does the relay consume both codes and do clients create the channel ratchet state.
 9. Any mismatch, timeout, cancel, attempt exhaustion, or protocol downgrade aborts the intent and burns the codes.
 
 ### 6.3 Code lifecycle requirements
@@ -337,13 +341,13 @@ transcript_cbor = RFC8949-deterministic-CBOR({
 transcript_hash = SHA-256("telegraph.pairing-transcript/v1" || transcript_cbor)
 ```
 
-The transcript must bind both roles and directions, both device identity keys, both endpoint commitments, channel ID, prekeys, protocol/version, code commitments, and both nonces. Real thread/workspace IDs are absent. The exact CBOR field labels and profile version are implementation ADR items, but RFC 8949 deterministic encoding and the domain separator are hard requirements.
+The transcript must bind both roles and directions, both device identity keys, both endpoint commitments, channel ID, prekeys, protocol/version, code commitments, and both nonces. Real thread/workspace IDs are absent. ADR 0002 refines these high-level requirements with the exact canonical CBOR field labels and profile version; RFC 8949 deterministic encoding and the domain separator remain hard requirements. That exact profile is independently reviewed with conditions; its implementation gates remain open.
 
-The displayed safety code is derived from `transcript_hash` and must display at least 64 bits. An independently transferred QR must contain the complete 256-bit `transcript_hash` (and enough context to identify the pairing), not only the short display code. The safety code is not a key and is not accepted as the sole authentication input. Safety-code length, formatting, QR layout, and accessibility are product approval items.
+The displayed safety code is derived from `transcript_hash` and must display at least 64 bits. An independently transferred QR must contain the complete 256-bit `transcript_hash` (and enough context to identify the pairing), not only the short display code. The safety code is not a key and is not accepted as the sole authentication input. Both users must manually compare the safety code or complete QR through an authenticated channel independent of the relay and confirm locally; relay UI confirmation alone is insufficient. Safety-code length, formatting, QR layout, and accessibility are product approval items.
 
-After the selected handshake derives a confirmation key, each side computes a MAC over `transcript_hash`, its role, direction, and confirmation decision. Each client verifies the peer MAC locally before marking the peer confirmed. The relay cannot manufacture a valid confirmation without the handshake-derived key.
+ADR 0002 refines the high-level confirmation requirement to the selected vodozemac Olm v1 profile: both sides send a session-authenticated confirmation inner record using the public `Session::encrypt`/`Session::decrypt` contract, and each side accepts the peer only after successful decryption and exact validation. The record binds the canonical `transcript_hash`, `role`, `direction`, `decision=true`, and protocol/inner `version` (as well as channel/session and endpoint bindings). The Olm session supplies authentication; the library does not expose a root key, and Telegraph must not extract, derive, or invent a confirmation/MAC key. Olm v1 uses an 8-byte message tag, so this is not a 256-bit integrity claim.
 
-The selected X3DH/PQXDH profile must bind identity and prekey material to the channel transcript and associated data. The Double Ratchet session ID, epoch, channel ID, and endpoint binding must be checked on every inbound envelope. A channel or endpoint mismatch fails closed and cannot inject text into a different Codex thread.
+The selected ADR 0002 profile is classical Olm v1, not X3DH/PQXDH. It binds identity and prekey material to the channel transcript and associated data. The Olm Session ID, epoch, channel ID, and endpoint binding must be checked on every inbound envelope. A channel or endpoint mismatch fails closed and cannot inject text into a different Codex thread. ADR 0002 is independently reviewed with conditions; implementation remains blocked beyond T0/T1 neutral scaffolding pending closure. Experimental v2 is not enabled or used.
 
 Primary protocol references:
 
@@ -354,19 +358,19 @@ Primary protocol references:
 
 ## 8. Candidate comparison
 
-### A. Signal-style X3DH/PQXDH + Double Ratchet + Sesame
+### A. Signal-style X3DH/PQXDH + Double Ratchet + Sesame (reference only)
 
 Pairing uses the relay code only for discovery; device identity keys and independent human safety confirmation provide identity binding. Device-level signed/one-time prekeys bootstrap each independent channel; the resulting session feeds a separate Double Ratchet state.
 
-It supports offline initial delivery, per-message key evolution, bounded skipped-key handling, rekeying, and a documented place for retry/receipt state. It still requires product-level revocation, endpoint compromise recovery, metadata policy, and exact thread-binding rules. This is the recommended protocol family, subject to the blocking implementation/license/support decision in Section 9.
+It supports offline initial delivery, per-message key evolution, bounded skipped-key handling, rekeying, and a documented place for retry/receipt state. It still requires product-level revocation, endpoint compromise recovery, metadata policy, and exact thread-binding rules. It remains a comparative reference only; ADR 0002 selects the classical Olm v1 profile for this two-peer MVP, subject to that ADR's accept-with-conditions disposition.
 
-### B. Conditional permissive implementation: vodozemac 0.10.0 (Olm-style)
+### B. Selected baseline in ADR 0002: vodozemac 0.10.0 (Olm v1)
 
-[vodozemac 0.10.0](https://github.com/matrix-org/vodozemac/tree/0.10.0) is an Apache-2.0 pure-Rust implementation of Olm and Megolm. Its official [Cargo metadata](https://github.com/matrix-org/vodozemac/blob/0.10.0/Cargo.toml) records version `0.10.0`, Apache-2.0, Rust 1.85, and edition 2024. Its [Account API](https://docs.rs/vodozemac/0.10.0/vodozemac/olm/struct.Account.html) exposes device identity and one-time/fallback key management; its [Session API](https://docs.rs/vodozemac/0.10.0/vodozemac/olm/struct.Session.html) implements asynchronous Olm Double Ratchet sessions. The official README records one Least Authority audit with no significant findings, but the audit scope and Telegraph-specific integration remain subject to independent review.
+[vodozemac 0.10.0](https://github.com/matrix-org/vodozemac/tree/0.10.0) is an Apache-2.0 pure-Rust implementation of Olm and Megolm. Its official [Cargo metadata](https://github.com/matrix-org/vodozemac/blob/0.10.0/Cargo.toml) records version `0.10.0`, Apache-2.0, Rust 1.85, and edition 2024. Its [Account API](https://docs.rs/vodozemac/0.10.0/vodozemac/olm/struct.Account.html) exposes device identity and one-time/fallback key management; its [Session API](https://docs.rs/vodozemac/0.10.0/vodozemac/olm/struct.Session.html) implements asynchronous Olm Double Ratchet sessions. ADR 0002 selects `SessionConfig::version_1()`: Olm v1 has an 8-byte message tag, while the experimental v2 configuration is forbidden. The official README records one Least Authority audit with no significant findings, but the audit scope and Telegraph-specific integration remain subject to independent review.
 
-This is the only conditional permissive candidate selected by R4 library research. It can map one Telegraph device to one Account and one thread-to-thread pair to one Session, but it does not supply Telegraph pairing, endpoint commitments, device-code UX, relay mailbox semantics, receipts, or Codex thread binding. It is not X3DH, PQXDH, or Sesame, and must not be described as Signal-equivalent. The v0.10.0 release contains breaking API changes, so Telegraph must hide it behind an adapter and pin the full release commit (the official page exposes short commit `bb39ec6`). Default `libolm-compat` behavior and secure state persistence require explicit review.
+It can map one Telegraph device to one Account and one thread-to-thread pair to one Session, but it does not supply Telegraph pairing, endpoint commitments, device-code UX, relay mailbox semantics, receipts, or Codex thread binding. It is not X3DH, PQXDH, or Sesame, and must not be described as Signal-equivalent. The v0.10.0 release contains breaking API changes, so Telegraph must hide it behind an adapter and pin the full release commit (the official page exposes short commit `bb39ec6`). Default `libolm-compat` behavior and secure state persistence require explicit review. The confirmation flow is the bidirectional session-authenticated inner record in ADR 0002; no root key or independent MAC key is exposed or created by Telegraph.
 
-R4 may proceed with this candidate only if product accepts an Olm-style classical protocol and an independent ADR/review approves the profile. It remains **implementation blocked** until the full commit, dependency licenses, Linux builds, persistence tests, and audit report are reviewed.
+ADR 0002's exact profile is accepted with conditions, so crypto/provider implementation remains **blocked pending closure**. The full commit, dependency licenses, Linux builds, persistence tests, invalid-auth persistence/quarantine behavior, and audit report remain closure evidence; no implementation or E2EE claim is authorized.
 
 ### C. Noise handshake plus application-defined session rekey
 
@@ -390,15 +394,15 @@ Pairing would still need identity signatures or PAKE/independent confirmation; r
 | Device identity and fingerprint | Required | Account identity; Telegraph confirmation required | Application binding | Extra Auth/signature required | MLS credentials; application binding |
 | Per-message key evolution | Yes | Yes, Olm Double Ratchet | Policy-dependent | No session ratchet | Epoch/tree ratchets, not pairwise DR |
 | Out-of-order/replay | Protocol state plus app bounds | Session state plus app bounds | App responsibility | App responsibility | Epoch/group state plus app policy |
-| Post-compromise recovery | Ratchet-dependent, documented | Olm-style; profile/review required | Re-handshake/app policy | Not provided | MLS update/epoch semantics |
+| Post-compromise recovery | Ratchet-dependent, documented | Olm-style; ADR 0002 profile review conditional | Re-handshake/app policy | Not provided | MLS update/epoch semantics |
 | Offline retry/receipt model | Sesame reference | Custom Telegraph layer | Custom | Custom | Custom delivery service |
-| Relay plaintext resistance | Yes, if profile/library correct | Candidate only; not implemented/reviewed | Yes, if profile/library correct | Yes, if profile/library correct | Yes, if profile/library correct |
+| Relay plaintext resistance | Yes, if profile/library correct | Selected baseline; implementation not reviewed; closure pending | Yes, if profile/library correct | Yes, if profile/library correct | Yes, if profile/library correct |
 | Implementation/license risk | libsignal currently blocking | Apache-2.0; API/dependency review required | Framework composition risk | Weak protocol properties | MIT but group complexity |
-| R4 status | **Recommended family, conditional** | **Conditional alternative** | Defer | Rejected baseline | Defer |
+| R4 status | Reference only | **Selected baseline; accept with conditions** | Defer | Rejected baseline | Defer |
 
-## 9. Implementation-blocking library and license decision
+## 9. Implementation-blocking library, license, and ADR 0002 decision
 
-The protocol family recommendation does not select a library.
+ADR 0002 records the exact selected baseline: Apache-2.0 vodozemac 0.10.0, classical Olm v1, with `SessionConfig::version_1()` and the session-authenticated confirmation-record flow. Its exact profile is independently accepted with conditions; implementation remains limited to T0/T1 neutral scaffolding pending dependency/storage closure and the next gate. This selection does not claim that a working channel or E2EE exists.
 
 The official [libsignal repository](https://github.com/signalapp/libsignal) states that it is used by official Signal clients and servers, that use outside Signal is unsupported, and that APIs/bridge layers may change without notice. The same repository states that it is licensed under AGPLv3. Therefore:
 
@@ -410,11 +414,11 @@ The official [libsignal repository](https://github.com/signalapp/libsignal) stat
 
 The fixed release evidence reviewed for this decision is [libsignal v0.101.0](https://github.com/signalapp/libsignal/releases/tag/v0.101.0), short verified commit `b056faa`. The full commit, transitive dependency licenses, and external-use terms still require gate-time verification. The official build instructions also require Rust nightly plus Clang/libclang, CMake, Make, protoc, Python, and multiple language bridge toolchains, increasing cross-Linux packaging risk.
 
-The conditional alternative is [vodozemac 0.10.0](https://github.com/matrix-org/vodozemac/releases/tag/0.10.0), short verified commit `bb39ec6`, Apache-2.0, pure Rust, Rust 1.85/edition 2024. The official README records one Least Authority audit with no significant findings, but this is not an audit of Telegraph's pairing, endpoint binding, relay, persistence, or receipt design. The release has breaking API changes; a Telegraph adapter and full immutable commit are mandatory. Linux CI must cover at least x86_64 GNU, x86_64 musl, and aarch64 GNU, plus crash/restart and secure state storage. Dependency license closure and the default `libolm-compat` feature require an explicit review.
+The selected baseline is [vodozemac 0.10.0](https://github.com/matrix-org/vodozemac/releases/tag/0.10.0), short verified commit `bb39ec6`, Apache-2.0, pure Rust, Rust 1.85/edition 2024. The official README records one Least Authority audit with no significant findings, but this is not an audit of Telegraph's pairing, endpoint binding, relay, persistence, or receipt design. The release has breaking API changes; a Telegraph adapter and full immutable commit are mandatory. Linux CI must cover at least x86_64 GNU, x86_64 musl, and aarch64 GNU, plus crash/restart and secure state storage. Dependency license closure, the default `libolm-compat` feature, Olm v1's 8-byte tag and persistent invalid-auth quarantine, and ADR 0002's independent review require explicit review before implementation.
 
 OpenMLS stable evidence is [v0.8.1](https://github.com/openmls/openmls/releases), short verified commit `47dbede`, MIT. It is deferred because its RFC 9420 group/epoch/tree model adds delivery and persistence complexity without providing a direct pairwise Double Ratchet path. The official security advisory for `0.7.0`/`0.7.1` must be included in the patch policy; no Telegraph-specific audit evidence was found.
 
-The choice between classical X3DH and PQXDH, the exact Double Ratchet profile, key types, serialization, and library version must be recorded in a later approved ADR. No custom cryptographic composition is permitted.
+ADR 0002 records the exact classical Olm v1 profile, key/session APIs, serialization, and pinned library version. Its exact profile is independently accepted with conditions; dependency/storage closure still blocks implementation beyond T0/T1 neutral scaffolding. No custom cryptographic composition, root-key extraction, independent MAC key, or experimental v2 is permitted.
 
 ## 10. Offline delivery, ordering, replay, and failure semantics
 
@@ -465,7 +469,11 @@ Double Ratchet sequence and bounded skipped-key state handle allowed out-of-orde
 - no second Codex input for a replayed valid ciphertext;
 - bounded memory and CPU under replay/flood attacks.
 
-### 10.4 Transport ack versus E2E receipt
+### 10.4 Olm v1 authentication budget
+
+ADR 0002 requires explicit `SessionConfig::version_1()` for both sides. Olm v1 authenticates with an 8-byte message tag; R4 makes no 256-bit integrity claim and does not enable the experimental v2 configuration. Each channel therefore persists its invalid-auth counter and window start in secure state: at most eight authenticated-decrypt failures in any 600-second window. The eighth failure durably quarantines the channel and fails closed pending repair; a valid authenticated message may begin a new window only before quarantine. The counter, window, and quarantine state survive restart and are included in the rollback anchor. No key extraction or independent MAC-key construction is a fallback for this finite tag budget.
+
+### 10.5 Transport ack versus E2E receipt
 
 `TransportAck` is relay-supplied and untrusted. It means only that the relay accepted, stored, fetched, or deleted an opaque envelope.
 
@@ -479,13 +487,13 @@ The product must approve which levels are emitted and retained. A later receipt 
 
 Only a valid channel-authenticated E2E receipt can advance local E2E delivery state. A forged or replayed receipt must fail authentication or be ignored as a duplicate.
 
-### 10.5 Atomic persistence and crash semantics
+### 10.6 Atomic persistence and crash semantics
 
 For outbound data, the client must atomically persist the new ratchet state, deduplication/sequence state, and ciphertext envelope before sending it to the relay. A crash after persistence but before send is retried with the same `delivery_id`; a crash after send does not roll the ratchet state backward.
 
 For inbound data, the client must authenticate/decrypt, atomically persist the ratchet advancement and deduplication decision, and only then hand plaintext to the local Codex endpoint. A crash before injection leaves a retryable local acceptance record; it must not cause a second Codex input. A normal crash with incomplete or inconsistent state fails closed and requires controlled repair. A full-disk rollback that defeats a secure rollback anchor is treated as endpoint compromise and is outside the ordinary crash guarantee; it triggers device/channel recovery rather than silent continuation.
 
-### 10.6 One-time prekey consumption and exhaustion
+### 10.7 One-time prekey consumption and exhaustion
 
 One-time prekey claim, use, deletion, and durable inventory update must be one atomic operation. A crash or duplicate claim must not allow the same one-time prekey to bootstrap two channels. Inventory is monitored and replenished before exhaustion. If the pool is exhausted or atomic consumption cannot be proven, a new pairing fails closed; it must not silently downgrade to a reusable prekey or a no-identity handshake.
 
@@ -551,7 +559,7 @@ An attacker with the device identity private key can impersonate the device to n
 12. Local audit correlates endpoint, channel, message, transport, E2E receipt, sequence, and failure status without raw private keys or codes.
 13. Safety-code comparison succeeds only when both users compare through an authenticated channel independent of relay-a; relay UI confirmation alone is rejected.
 14. The same transcript fields encoded with RFC 8949 deterministic CBOR produce the same domain-separated 256-bit transcript hash on both clients; the safety display is at least 64 bits and an independent QR carries the full hash.
-15. Confirmation MACs derived from the handshake confirmation key verify locally on both sides; a relay cannot submit a valid confirmation MAC.
+15. Both sides send and successfully decrypt the exact session-authenticated confirmation inner record; its canonical transcript hash, role, direction, decision, and version all verify locally, and no relay can submit a valid confirmation.
 16. Endpoint handles and pairing nonces are independently random 128-bit values; the endpoint commitment matches the domain-separated SHA-256 formula and contains no real thread/workspace ID.
 17. The three encrypted receipt levels (`decrypted`, `codex_accepted`, `turn_completed`) are monotonic and idempotent; transport ack cannot advance them.
 18. Proposed defaults are observable and configurable only through an approved product decision: relay message TTL 7 days, pairing/user-code TTL 10 minutes, 50-bit Crockford user code, five failed claims.
@@ -575,7 +583,7 @@ An attacker with the device identity private key can impersonate the device to n
 13. Relay-visible metadata is present in the test observation, while plaintext and valid E2E receipts remain unavailable to relay.
 14. The narrow relay interface has no plaintext/decrypt/key-generation/session-opening operation.
 15. A safety code shown only in relay UI, a short-code collision, an altered CBOR field/order, or a missing QR transcript hash prevents activation.
-16. A relay-substituted endpoint handle, nonce, code commitment, identity key, prekey, role, direction, or protocol version causes transcript/MAC failure.
+16. A relay-substituted endpoint handle, nonce, code commitment, identity key, prekey, role, direction, or protocol version causes transcript or session-confirmation validation failure.
 17. Receipt replay, receipt downgrade, or a transport ack presented as an E2E receipt cannot advance local state.
 18. Relay expiry, consumed-code deletion, crash/retry, and late message deletion are idempotent; expired or burned pairing material cannot reopen.
 19. Full-disk rollback without a valid secure anchor fails closed as endpoint compromise; ordinary crash with incomplete state never silently continues.
@@ -583,7 +591,7 @@ An attacker with the device identity private key can impersonate the device to n
 
 ## 14. Product decisions still required
 
-- Classical X3DH versus PQXDH profile, and the exact supported implementation.
+- Maintain ADR 0002's exact classical vodozemac Olm v1 profile (or reopen it if Signal/PQXDH is required); its independent-review disposition is accept with conditions and implementation remains blocked beyond T0/T1 pending closure.
 - Legal/support decision for any candidate library, especially `libsignal` AGPLv3 and unsupported external use.
 - Safety-code display length (minimum 64 bits), wording, full-hash QR/manual confirmation UX, independent authenticated channel, and what counts as a human confirmation.
 - Proposed defaults pending product approval: relay message TTL 7 days; pairing/user-code TTL 10 minutes; 50-bit Crockford Base32 `user_code`; five failed claims; rate limits, lockout, and audit retention.
@@ -597,7 +605,7 @@ An attacker with the device identity private key can impersonate the device to n
 
 Do not claim:
 
-- Telegraph has implemented, provides, or completed E2EE; this document is a design draft with implementation blocked and review conditions still open.
+- Telegraph has implemented, provides, or completed E2EE; this document records a conditionally accepted design with implementation blocked and review conditions still open, and E2EE remains unimplemented and unverified.
 - A server-generated `device_code` or `user_code` alone authenticates a peer.
 - The relay cannot observe metadata or cause denial of service.
 - A transport ack proves decryption, Codex acceptance, or completion.
@@ -606,18 +614,19 @@ Do not claim:
 - Device identity rotation can silently update all channels.
 - Channel-only repair has no effect on the affected channel's old state.
 - Web3, local transport, group semantics, or a generic IR are implemented.
-- Independent security review has passed.
+- ADR 0002's exact profile has passed independent review only with conditions; implementation remains blocked beyond T0/T1 neutral scaffolding until dependency/storage closure.
+- Olm v1's 8-byte tag is treated as a finite authentication limit with the persisted invalid-auth budget/quarantine policy; no experimental v2 or 256-bit tag claim is permitted.
 
 ## 16. Evidence ledger
 
-Evidence was opened from official pages/files, not search-result summaries, on 2026-08-23. Repository evidence uses a release tag or immutable commit locator; no unversioned-branch claim is used. The independent review disposition corroborates C-R4-001..009; C-R4-010 remains an unverified design inference, and the implementation conditions above remain open.
+Evidence was opened from official pages/files, not search-result summaries, on 2026-08-23. Repository evidence uses a release tag or immutable commit locator; no unversioned-branch claim is used. The independent review at `2026-08-23T10:49:41.9846936Z` corroborates the cited external/local source claims and the exact ADR 0002 profile with conditions. C-R4-010 remains an unverified design inference and C-R4-011 records the remaining implementation gate; no vector result is represented as passed.
 
 ```yaml
 status: corroborated
 reviewer_id: independent-subagent-r4-security-review
-reviewed_at_utc: "2026-08-23T08:08:38Z"
+reviewed_at_utc: "2026-08-23T10:49:41.9846936Z"
 design_gate: accept_with_conditions
-implementation_authorization: blocked_reject
+implementation_authorization: t0_t1_neutral_scaffold_only
 security_claim: E2EE_not_claimed
 access_date: 2026-08-23
 claims:
@@ -650,13 +659,14 @@ claims:
 
   - id: C-R4-004
     kind: implementation-candidate
-    statement: "vodozemac 0.10.0 is an Apache-2.0 pure-Rust Olm/Double Ratchet implementation with device Account and Session APIs; it is not Signal/PQXDH."
+    statement: "vodozemac 0.10.0 is an Apache-2.0 pure-Rust Olm/Double Ratchet implementation with device Account and Session APIs; ADR 0002 records its exact classical Olm v1 profile, independently accepted with conditions, while dependency/storage closure still blocks implementation beyond T0/T1 neutral scaffolding."
     source_locators:
       - "https://github.com/matrix-org/vodozemac/releases/tag/0.10.0 (short verified commit bb39ec6)"
       - "https://github.com/matrix-org/vodozemac/blob/0.10.0/Cargo.toml:5-12,36-44"
       - "https://github.com/matrix-org/vodozemac/blob/0.10.0/README.md:21-28,50-56"
       - "https://docs.rs/vodozemac/0.10.0/vodozemac/olm/struct.Account.html"
       - "https://docs.rs/vodozemac/0.10.0/vodozemac/olm/struct.Session.html"
+      - "docs/adr/0002-device-code-pairing-and-channel.md:28-38,65-70,254-280,522-526"
     status: corroborated
 
   - id: C-R4-005
@@ -702,10 +712,16 @@ claims:
 
   - id: C-R4-010
     kind: design-inference
-    statement: "Independent safety comparison, authenticated confirmation MAC, opaque endpoints, receipt separation, atomic persistence, prekey exhaustion fail-closed, and rotation_required are Telegraph security requirements derived from the threat model."
+    statement: "Independent safety comparison, session-authenticated confirmation inner records bound to the canonical transcript hash/role/direction/decision/version, opaque endpoints, receipt separation, atomic persistence, prekey exhaustion fail-closed, and rotation_required are Telegraph security requirements derived from the threat model."
     source_locators:
-      - "docs/security/R4-telegraph-security-design.md:3-6,57-69,192-270,374-460"
+      - "docs/security/R4-telegraph-security-design.md:3-6,63-73,192-270,343-474"
     status: unverified  # design inference; not externally corroborated
+  - id: C-R4-011
+    kind: implementation-gate
+    statement: "ADR 0002's exact vodozemac Olm v1 profile has an independent-review disposition of accept with conditions; crypto/provider implementation remains blocked pending dependency/storage closure and the next implementation gate."
+    source_locators:
+      - "docs/adr/0002-device-code-pairing-and-channel.md:17-19,260,522-526"
+    status: corroborated
 ```
 
-The evidence ledger does not claim that any implementation exists or that the design has passed independent review.
+The evidence ledger does not claim that any implementation exists, that the 30 acceptance vectors have passed, or that E2EE is implemented or verified. The exact profile review is accept with conditions; implementation authorization remains limited to T0/T1 neutral scaffolding.
