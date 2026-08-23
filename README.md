@@ -4,12 +4,13 @@ Telegraph is a research-gated Cicada project for direct text conversation betwee
 
 ## Current status
 
-The product route was approved on 2026-08-23 as a lightweight Rust-first core with the stable SDK companion route described by ADR 0003. R1 and R4, plus ADR 0001/0002/0003, have independent-review dispositions of **accept with conditions**. Conditions remain open: only the reviewed task breakdown's T0/T1 neutral scaffold is currently authorized; relay, client, crypto/provider, bridge, integration, and deployment work remain blocked pending the next implementation gate. The current checkout contains governance and research material only; there is no client, relay, message transport, mailbox, or cryptographic implementation here. E2EE is neither implemented nor verified, and no E2EE claim is made.
+The product route was approved on 2026-08-23 as a lightweight Rust-first core with the stable SDK companion route described by ADR 0003. R1 and R4, plus ADR 0001/0002/0003, have independent-review dispositions of **accept with conditions**. A subsequent implementation addendum, independently reviewed as **authorize with conditions** by `telegraph-t2-t3-implementation-gate-reviewer-01` at `2026-08-23T13:00:24Z` for source commit `ca37d28bed9a50b776b2f8f2d3396df771207186`, extends permission to T0 handoff glue and owned T2/T3 files without rewriting ADR 0001-0004 or R4's design-review history. R4's gate-local `t0_t1_neutral_scaffold_only` authorization remains historical; T4/T5/T6+ work, including CLI, bridge, integration, release, and deployment, remains blocked. The current checkout contains governance and research material only; there is no client, relay, message transport, mailbox, or cryptographic implementation here. E2EE is neither implemented nor verified, the 30 R4 vectors have not been executed, and no E2EE or production claim is made.
 
 The R1 report includes C-level local workstation observations and records its independent-review disposition. It is not a minimum-support claim or implementation authorization.
 
 - [R1 Codex extension feasibility](docs/research/R1-codex-extension-feasibility.md)
 - [R4 Telegraph security design](docs/security/R4-telegraph-security-design.md)
+- [T2/T3 implementation-gate evidence](docs/evidence/T2-T3-implementation-gate.md)
 - [Evidence and citation convention](docs/evidence/README.md)
 - [Security policy](SECURITY.md)
 - [Contribution rules](CONTRIBUTING.md)
@@ -30,6 +31,6 @@ The relay-generated `device_code` and short-lived human `user_code` are only ren
 
 ## Implementation gate rule
 
-The product route, scope, non-goals, acceptance conditions, supported Codex route, risk analysis, and independent-review plan are frozen for the approved planning route. Only T0/T1 neutral-scaffold tasks in `docs/implementation/MVP-task-breakdown.md` may execute now. R1 and R4, and the design ADRs, remain conditionally accepted with open conditions; relay, client, crypto/provider, bridge, integration, and deployment work require the next implementation gate. Every implementation task requires independent review, and no task may claim E2EE.
+The product route, scope, non-goals, acceptance conditions, supported Codex route, risk analysis, and independent-review plan are frozen for the approved planning route. The subsequent implementation addendum permits T0 integration-owner handoff changes to root membership/lock/glue and only owned T2/T3 files; it extends implementation/test permission without changing ADR 0001-0004 or R4's historical `t0_t1_neutral_scaffold_only` field. T4/T5/T6+ work, including CLI, bridge, integration, release, and deployment, requires a later gate. Every implementation result requires independent review; the 30 R4 vectors remain unexecuted, and no task may claim E2EE or production readiness.
 
 Do not put server addresses, credentials, tokens, private keys, cookies, or local `.env` files in this repository.

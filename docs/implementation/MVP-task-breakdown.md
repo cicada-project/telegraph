@@ -12,11 +12,30 @@ This file is a forward-looking plan and delegation record, not implementation
 authorization or evidence that any task is complete. Each task owns only the
 files listed under its `File ownership`; an agent must not edit another task's
 owned files. Repository execution permissions remain governed by `AGENTS.md`.
-At the current phase, only the T0 workspace/integration scaffold and T1 neutral
-framing scaffold are permitted; T2–T8 remain blocked. ADR and governance
-documents have been updated through the review workflow, but that does not
-relax AGENTS.md, file ownership, implementation scope, security gates, or the
-claims policy.
+At the current phase, T0 workspace/integration work, T1 neutral framing, and
+T2/T3 work in their explicitly owned files are permitted with conditions under
+the subsequent implementation addendum and independent review recorded in
+`docs/evidence/T2-T3-implementation-gate.md`. The addendum extends owned
+implementation/test permission without rewriting ADR 0001-0004 or R4's
+design-review history; R4's gate-local `t0_t1_neutral_scaffold_only` remains
+historical and does not conflict with this addendum.
+T4/T5/T6+ remain blocked, including CLI, bridge, integration, release, and
+deployment work. The T0 integration owner may change root workspace membership,
+`Cargo.lock`, and reserved crate-root glue only at an accepted handoff; T2/T3
+must not cross ownership boundaries. ADR and governance documents have been
+updated through the review workflow, but that does not relax AGENTS.md, file
+ownership, implementation scope, security gates, or the claims policy.
+
+### Current T2/T3 implementation-gate disposition
+
+- Reviewer: `telegraph-t2-t3-implementation-gate-reviewer-01`
+- Reviewed at (UTC): `2026-08-23T13:00:24Z`
+- Source commit: `ca37d28bed9a50b776b2f8f2d3396df771207186`
+- Disposition: T2 relay/store/API and T3 crypto/client-state are **authorize
+  with conditions**; T4/T5/T6+ remain blocked.
+- The 30 R4 acceptance vectors have not been executed. No implementation result
+  may claim E2EE or production readiness; every result requires independent
+  review.
 
 ## Shared rules for every implementation task
 
@@ -228,6 +247,16 @@ integration owner.
 
 ## T2 — Relay mailbox store and HTTP(S) API
 
+### Implementation-gate status
+
+T2 is authorized with conditions by the current independent gate. It may touch
+only the T2-owned paths below and must keep the relay opaque: no plaintext,
+private key, decryption, key generation, session opening, Codex interpretation,
+CLI/bridge/deployment work, or root lock/glue edits. Proposed TTLs remain
+configurable design values pending product approval, not release defaults.
+T2's tests and handoff require independent review; the R4 vectors are future
+acceptance requirements and have not been executed by this gate.
+
 ### User flow
 
 Client A creates a pairing intent and polls it; client B claims the displayed
@@ -354,6 +383,15 @@ never edits the root `Cargo.lock`.
 > explicitly state that E2EE is not implemented.
 
 ## T3 — Crypto adapter and client state
+
+### Implementation-gate status
+
+T3 is authorized with conditions by the current independent gate. It may touch
+only the T3-owned paths below; it must not edit T0 glue, the root lock, T2 relay
+paths, CLI, bridge, or deployment files. Provider/dependency/license/support
+closure, secure client-secret storage and migration evidence, and the R4
+profile conditions remain mandatory. T3 results require independent review and
+must not claim E2EE or production readiness; the R4 vectors remain unexecuted.
 
 ### User flow
 
