@@ -6,9 +6,10 @@ design_gate: accept_with_conditions
 reviewer_id: telegraph-dependency-adr-reviewer-01
 reviewed_at_utc: "2026-08-23T11:09:23Z"
 authorized_scope: T0/T1_scaffold_only
-implementation_gate: closed
-release_gate: closed
-evidence_status: not_executed
+implementation_gate: closed_pending_evidence
+release_gate: closed_pending_evidence
+evidence_status: pending_required_evidence
+gate_semantics: "design baseline accepted; implementation and release evidence remain pending"
 claims: no_implementation_evidence; E2EE_not_claimed
 ---
 
@@ -77,6 +78,15 @@ security claim. In particular, a passing build, a rustls connection, a
 database transaction, or a cryptographic library dependency does not establish
 E2EE.
 
+Architecture boundary revision (2026-08-24): consistent with ADR 0001, the
+selected lightweight dependency graph keeps `telegraph-crypto` as a
+provider/byte-level adapter and does not add an unused
+`telegraph-protocol` dependency. The `client` crate explicitly depends on both
+`crypto` and `protocol` and composes crypto-produced opaque ciphertext with
+the neutral `Envelope`; local plaintext remains on the client endpoint path.
+This avoids formal-only dependencies and provider/framing coupling. It does
+not change the product scope or authorize T3b, deployment, or an E2EE claim.
+
 ## MSRV, edition, and toolchain policy
 
 1. Every workspace package declares edition 2024 and rust-version 1.85. This
@@ -144,13 +154,27 @@ with no credentials, relay address, or local path embedded.
 The dependency graph follows ADR 0001:
 
 - protocol has no Tokio, network, database, Codex, or crypto-provider edge;
-- crypto depends on protocol and the approved vodozemac adapter only;
-- store has separate relay-opaque and client-secret paths and does not
-  interpret plaintext;
-- relay depends on protocol/store and never sees private keys or plaintext;
-- client owns transport, channel state, and the local bridge boundary;
+- crypto depends only on the approved vodozemac adapter and its narrow
+  reviewed crypto/storage dependencies; it remains provider/byte-level and
+  does not depend on protocol framing;
+- store has separate relay-opaque and client-secret paths, does not interpret
+  plaintext, and never accepts provider session state in its relay-opaque
+  path;
+- relay depends on protocol and relay-opaque store state and never sees
+  plaintext, private keys, or provider session state;
+- client depends on protocol, crypto, and local store. It owns transport,
+  channel state, the crypto-to-Envelope composition, and the local bridge
+  boundary;
 - cli owns user interaction and does not bypass client state;
 - the Python bridge is a process/package boundary, not a Rust generic IR.
+
+The dependency graph is a real API boundary, not a checklist target: no
+unused dependency may be introduced solely to satisfy a nominal edge. Protocol
+tests own canonical framing; crypto tests own provider/byte-level invariants;
+client tests must cover the actual crypto-to-Envelope composition and local
+handoff; relay/store tests must remain opaque and reject plaintext/provider
+session inputs. Any future change that makes crypto consume protocol types
+requires a reviewed ADR update and a manifest/feature-graph review.
 
 Feature policy:
 
@@ -181,9 +205,9 @@ exact patch is selected and recorded in Cargo.lock.
 | tokio-rustls | 0.26.x (0.26.4) | MIT OR Apache-2.0 | default-features=false, ring | Tokio-facing relay TLS boundary. No default aws-lc-rs, logging, or TLS 1.2 feature. |
 | reqwest | 0.12.x (0.12.26) | MIT OR Apache-2.0 | default-features=false, rustls-tls-manual-roots, http2 | Client HTTPS transport over rustls with application-supplied trust roots. No native-tls, system proxy, cookies, compression, or WebSocket features. The observed 0.13.4 line is not selected until its changed feature/provider behavior is re-audited. |
 | rusqlite | 0.40.x (0.40.2) | MIT | default-features=false, bundled | Small synchronous SQLite boundary. Enable WAL/transactions/busy timeout at runtime and execute blocking operations through the bounded writer/read contract below. No SQLCipher, load_extension, vtab, or bundled-sqlcipher feature. |
-| cbor4ii | 1.2.x (1.2.2) | MIT | default-features=false; no serde1, use_alloc, or use_std feature | Small core CBOR implementation. Schema-specific Encode/Decode types and the strict wrapper below supply the RFC 8949 deterministic profile; generic serde wire models are not accepted. |
-| serde | 1.0.x (1.0.229) | MIT OR Apache-2.0 | derive only where typed local/control data needs it | Local typed control data and the restricted bridge protocol. It is not a license to expose wire fields from arbitrary Rust structs. |
-| serde_json | 1.0.x (1.0.151) | MIT OR Apache-2.0 | std only, bridge crate only | Restricted local JSONL bridge parsing. It is not a relay or peer wire format and must retain bounded line/depth/field validation. |
+| cbor4ii | 1.2.x (1.2.2) | MIT | Protocol and general wire paths use `default-features=false` and request no `serde1`, `use_alloc`, or `use_std`; the narrow [ADR 0005](0005-provider-pickle-cbor4ii-serde1-exception.md) C1 exception permits only the `telegraph-crypto` provider-state edge to request `serde1` | Small core CBOR implementation. Protocol-owned schema-specific Encode/Decode types remain on `cbor4ii::core`; under the unified root graph C1 resolves exactly `{serde, serde1, use_alloc}`, keeps `use_std` forbidden, and is policy enforcement rather than crate feature isolation. Generic serde wire models are not accepted. |
+| serde | 1.0.x (1.0.229) | MIT OR Apache-2.0 | derive only where reviewed typed local/control data needs it | Restricted local control/bridge data only; never protocol, peer-wire, relay, or storage-format fields. It is not a license to expose wire fields from arbitrary Rust structs. |
+| serde_json | 1.0.x (1.0.151) | MIT OR Apache-2.0 | std only, bridge crate only | Restricted local JSONL bridge parsing only. It is not a relay, peer, or storage wire format and must retain bounded line/depth/field validation. |
 | thiserror | 2.0.x (2.0.20) | MIT OR Apache-2.0 | default feature set only when std error messages are required; otherwise default-features=false | Small typed errors at crate boundaries. Avoid a runtime anyhow-style catch-all in security-sensitive state transitions. |
 | vodozemac | exact =0.10.0 | Apache-2.0 | default-features=false; no libolm-compat, experimental-session-config, low-level-api, or js | The ADR 0002 classical Olm adapter. Its full official commit and release evidence remain an R4 gate. No custom ratchet or key extraction is permitted. |
 | chacha20poly1305 | 0.11.x (0.11.0) | Apache-2.0 OR MIT | default-features=false, alloc, zeroize | XChaCha20-Poly1305 for independent local storage-record protection only, with fresh 24-byte nonces and explicit AAD. It is not a replacement for the approved Olm channel. |
@@ -205,13 +229,32 @@ relabelled as MIT. The project MIT license and the allowed third-party
 permissive licenses are compatible only when each component's conditions are
 preserved. A transitive license not covered by deny.toml is a release blocker.
 
+Vodozemac's unavoidable transitive `serde_json` and `matrix-pickle` packages
+remain part of the reviewed crypto/provider dependency closure only. Telegraph
+source must not call either package directly, use them for provider persistence,
+or place their values in protocol, peer-wire, relay, or storage formats. The
+resolved `serde` package appears because the cbor4ii C1 `serde1` exception
+supports private provider-state serialization and may also occur through the
+approved vodozemac/provider closure; this graph presence does not authorize
+Telegraph to construct direct Serde models outside the reviewed local
+control/bridge boundary. The same restriction applies to any direct Telegraph
+`serde`/`serde_json` use beyond that boundary; the root feature graph, source
+policy, and [ADR 0005](0005-provider-pickle-cbor4ii-serde1-exception.md) review
+must preserve it.
+
 ## Canonical CBOR strategy
 
 ADR 0001/0002 require compact integer-keyed CBOR and RFC 8949 deterministic
 transcript bytes. The selected implementation is cbor4ii 1.2.x core with
-schema-specific Encode/Decode implementations. cbor4ii 1.2.2 is MIT licensed;
-no serde1, use_alloc, or use_std feature is enabled. The codec's generic
-facilities are not treated as a canonicality proof.
+schema-specific Encode/Decode implementations. cbor4ii 1.2.2 is MIT
+licensed. Protocol and general Telegraph wire paths request no `serde1`,
+`use_alloc`, or `use_std` feature. When `telegraph-crypto` is integrated,
+[ADR 0005](0005-provider-pickle-cbor4ii-serde1-exception.md) permits only its
+private provider-state dependency edge to request `serde1`; Cargo's unified
+resolved package feature set is exactly `{serde, serde1, use_alloc}`, while
+`use_std` remains forbidden. This is a repository-policy boundary, not crate
+feature isolation, so non-crypto source may not use `cbor4ii::serde`. The
+codec's generic facilities are not treated as a canonicality proof.
 
 For every security-sensitive object:
 
@@ -402,9 +445,12 @@ artifact:
   independently before release; the Python bridge may see local plaintext,
   while the relay must not.
 
-No Python package is a Cargo runtime dependency. The Rust side's serde_json
-dependency is limited to the local JSONL boundary and does not create a
-generic intermediate representation.
+No Python package is a Cargo runtime dependency. Any direct Rust
+`serde_json` dependency/use is limited to the reviewed local JSONL bridge
+boundary and does not create a generic intermediate representation. The
+unavoidable vodozemac-transitive `serde_json` remains provider closure only;
+Telegraph code does not call it or expose its values in wire, relay, or
+storage formats.
 
 ## Test and tooling baseline
 
@@ -611,11 +657,15 @@ Before any implementation claim, T0/T1/T2/T3/T4/T5 must attach:
 The feature audit acceptance command is cargo tree -e features --workspace
 --all-targets followed by cargo deny check and cargo audit. It must prove:
 rustls-only transport, no OpenSSL/native-tls, no SQLCipher/ORM/Kafka/Redis/
-Web3/generic IR, vodozemac default-features=false, cbor4ii's schema-specific
-bounded CBOR path, the fs2 Linux adapter's exact feature/license closure, the
-bundled SQLite version/license in the SBOM, and no secret/plaintext path to
-relay code. It must also publish the dependency-weight count and delta; no
-current count is implied by this ADR.
+Web3/generic IR, vodozemac default-features=false, and cbor4ii's
+schema-specific bounded CBOR path. Under ADR 0005 C1 it must additionally
+prove that only the crypto provider-state edge directly requests `serde1`,
+that the unified resolved cbor4ii feature set is exactly
+`{serde, serde1, use_alloc}`, and that `use_std` is absent; this is policy
+enforcement, not crate feature isolation. It must also prove the fs2 Linux
+adapter's exact feature/license closure, the bundled SQLite version/license in
+the SBOM, and no secret/plaintext path to relay code. It must publish the
+dependency-weight count and delta; no current count is implied by this ADR.
 
 The release gate is closed until all of the above evidence is present,
 reviewed, reproducible from a clean checkout, and reconciled with ADR 0002,

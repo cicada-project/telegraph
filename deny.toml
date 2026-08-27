@@ -18,9 +18,6 @@ allow = [
     "Zlib",
     "CC0-1.0",
 ]
-unlicensed = "deny"
-copyleft = "deny"
-allow-osi-fsf-free = "neither"
 confidence-threshold = 0.93
 
 [bans]

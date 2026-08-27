@@ -2,7 +2,7 @@
 
 ## Current security status
 
-The product route was approved on 2026-08-23 as a lightweight Rust-first core with the stable SDK companion route in ADR 0003. R1, R4, and ADR 0001/0002/0003 have independent-review dispositions of **accept with conditions**. The subsequent T2/T3 implementation addendum is **authorize with conditions**, reviewed by `telegraph-t2-t3-implementation-gate-reviewer-01` at `2026-08-23T13:00:24Z` against source commit `ca37d28bed9a50b776b2f8f2d3396df771207186`; it extends owned T2/T3 implementation/test permission without rewriting ADR 0001-0004 or R4's design-review history. R4's gate-local `t0_t1_neutral_scaffold_only` authorization remains historical. This repository contains no client, message transport, relay, offline mailbox, pairing implementation, key handling, or runtime security boundary. T0 integration-owner handoff membership/lock/glue changes and T2/T3 owned files are authorized only within the addendum conditions; T4/T5/T6+ work, including CLI, bridge, integration, release, and deployment, remains blocked.
+The product route was approved on 2026-08-23 as a lightweight Rust-first core with the stable SDK companion route in ADR 0003. R1, R4, and ADR 0001/0002/0003 have independent-review dispositions of **accept with conditions**. The subsequent T2/T3 implementation addendum is **authorize with conditions**, reviewed by `telegraph-t2-t3-implementation-gate-reviewer-01` at `2026-08-23T13:00:24Z` against source commit `ca37d28bed9a50b776b2f8f2d3396df771207186`; it extends owned T2/T3 implementation/test permission without rewriting ADR 0001-0004 or R4's design-review history. R4's gate-local `t0_t1_neutral_scaffold_only` authorization remains historical. The committed baseline contains no reviewed client, message transport, relay, offline mailbox, pairing implementation, key handling, or runtime security boundary; any unintegrated worktree files do not constitute implementation acceptance. T0 integration-owner handoff membership/lock/glue changes and T2/T3 owned files are authorized only within the addendum conditions; T4/T5/T6+ work, including CLI, bridge, integration, release, and deployment, remains blocked.
 
 The project does not implement or verify end-to-end encryption (E2EE), and makes no E2EE or production claim. The 30 R4 acceptance vectors have not been executed. Any future security claim must identify its threat model, evidence, and independent reviewer; a product analogy such as “Telegram-like” is not a cryptographic specification.
 
@@ -13,6 +13,8 @@ Relay-generated `device_code` and short-lived human `user_code` values remain su
 The future relay boundary, if the R4 conditions are closed, is limited to ciphertext, offline mailbox state, and delivery receipts. Relay deployment is physically independent from this repository; the first deployment host is intentionally not recorded here. No relay exists in the current repository.
 
 Web3 is a deferred direction, not an MVP dependency. Any later narrow relay/mailbox adapter requires an explicit ADR and must not introduce a generic IR.
+
+The [product topology and scope addendum](docs/evidence/product-topology-and-scope-addendum.md) further fixes the two-party-per-channel, multi-workspace/multi-peer device boundary, physical client/relay separation, short-lived code/prekey semantics, and the no-E2EE/no-Web3-implementation claims boundary.
 
 ## Reporting a sensitive issue
 

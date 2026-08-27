@@ -58,6 +58,13 @@ If the product requires Signal/PQXDH or PQ security, this ADR is the wrong basel
 
 The profile has one role pair only: `A` (initiator, role `0`) and `B` (responder, role `1`). A device can own multiple opaque local endpoints, but every endpoint pair gets a fresh `intent_id`, `claim_id`, `channel_id`, transcript, prekey use, and Olm session. The real Codex thread ID, workspace ID, path, and SDK session record never cross the client boundary.
 
+The two-party role pair is per channel: one device may use independent local
+workspaces and form multiple independent channels with multiple peers. The
+client and central relay need not share a host, network, or physical location.
+The product-topology clarification in
+`docs/evidence/product-topology-and-scope-addendum.md` is a scope clarification,
+not a change to this cryptographic profile.
+
 The following are hard invariants:
 
 1. A code discovers a pending intent; it never authenticates a device.
@@ -168,6 +175,10 @@ The relay cannot see Olm plaintext or private keys, but the pinned Olm `PreKey`/
 
 * `device_code`: 16 CSPRNG bytes, displayed to A as 22-character unpadded base64url. It is returned only to A and is used only for polling. The relay stores `SHA-256(DEVICE_CODE || device_code)` and never needs to store the raw value at rest.
 * `user_code`: uniformly sampled integer `u` in `[0, 2^50)`, encoded as exactly 10 Crockford Base32 characters using alphabet `0123456789ABCDEFGHJKMNPQRSTVWXYZ`. Leading zeroes are retained. The wire value is uppercase with no hyphen; UI may render `XXXXX-XXXXX`. Input normalizes ASCII lowercase and removes one optional hyphen, then rejects `I`, `L`, `O`, `U` and every non-alphabet character; ambiguous aliases are not accepted. Its commitment is `SHA-256(USER_CODE || uint64_be(u))`.
+These values are short-lived, per-intent rendezvous/discovery inputs only;
+they are not device identity, authentication proof, or a long-term per-thread
+public-key directory/service. Public prekeys remain bounded bootstrap metadata
+with explicit lifecycle and do not replace client-side identity verification.
 * Pairing intent, `pair_init`, and both confirmation inner messages have exactly 600 seconds from their respective `created_at`/`sent_at`. Relay time is authoritative for the intent; clients reject a future authenticated timestamp more than 300 seconds ahead of their clock.
 * Established text, control, and receipt inner messages have a maximum/default lifetime of exactly 604800 seconds (7 days) from authenticated `sent_at`; an endpoint rejects `now > inner.expires_at`, `inner.expires_at > inner.sent_at+604800`, or `inner.sent_at > now+300`. A relay outer expiry is only a retention hint and is never trusted as endpoint expiry; its maximum is 7 days.
 * A code has exactly five failed claim attempts total. Each failure increments atomically; the fifth transitions to `BURNED`. Rate limiting/backoff is per code, client/origin, and relay-wide. Invalid, expired, burned, and already-consumed values are deliberately indistinguishable on the external API.

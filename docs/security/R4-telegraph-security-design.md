@@ -90,6 +90,10 @@ The local contracts remain authoritative. The Cicada baseline files are reposito
 
 The repository may eventually contain both a Telegraph client and a central relay server. This document defines only their security boundary. It does not add implementation code, a generic IR, Web3, a group protocol, remote TUI attachment, or local transport optimization.
 
+The parent Cicada documents cited in the preceding evidence bullets are fixed
+external inputs from outside this Telegraph checkout; they are not local files
+or implementation evidence.
+
 The first central deployment is referred to only as `relay-a`. Repository documentation must not contain its physical IP address. Physical co-location, the same network, a different machine, or a future central cluster does not change the cryptographic trust boundary.
 
 ## 3. Architecture and trust boundary
@@ -110,6 +114,12 @@ Codex CLI + Telegraph client B
 ```
 
 Both Codex CLIs are Telegraph clients. The relay is a central rendezvous and mailbox service, not a cryptographic endpoint.
+
+The two-party role is per channel: one device may serve independent endpoints
+across multiple local workspaces and multiple peers, while the client and relay
+may be physically separate. The [product-topology addendum](../evidence/product-topology-and-scope-addendum.md) clarifies that
+device/user codes are short-lived rendezvous inputs and public prekeys are
+bounded bootstrap metadata, not long-term per-thread key-directory services.
 
 ### 3.1 Relay compromise model
 

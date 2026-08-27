@@ -1,19 +1,18 @@
 //! T0-owned store boundary declarations.
 //!
-//! The relay-opaque and client-secret implementations are intentionally
-//! absent from the T0 scaffold. T2 and T3 add code only below their owned
-//! subdirectories and implement these narrow extension points without
-//! exchanging types across the trust boundary.
+//! The relay-opaque implementation is handed off below its owned module.
+//! Client-secret persistence remains a T3b placeholder and exposes no
+//! private material or behavior at this boundary.
 
 #![forbid(unsafe_code)]
 
 pub mod migrations;
 
-// Pre-handoff inline modules keep this T0-owned root compilable while the
-// implementation directories remain absent. T0 replaces each with an
-// external module declaration only when its owning task is handed off.
+// The client-secret marker remains behavior-free until the separate T3b
+// journal/secure-storage handoff. The relay-opaque module is now an owned,
+// reviewed implementation and is wired externally without changing its API.
 pub mod client_secret {}
-pub mod relay_opaque {}
+pub mod relay_opaque;
 
 /// Stable server-side persistence façade reserved for T2.
 ///

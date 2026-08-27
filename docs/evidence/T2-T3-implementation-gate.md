@@ -48,6 +48,14 @@ requires independent review. The 30 R4 acceptance vectors have not been
 executed. E2EE is not implemented or verified, and no E2EE or production claim
 is authorized.
 
+All owned implementation must preserve the [product topology and scope
+addendum](product-topology-and-scope-addendum.md): every channel remains a
+two-client channel; one device may serve independent local workspaces and
+multiple peers; client and central relay may be physically separate; codes and
+public prekeys are bounded rendezvous/bootstrap material rather than long-term
+identity services; and future Web3 work is limited to a separately approved
+narrow transport/storage seam.
+
 ## T2 — relay/store/API ownership and conditions
 
 T2 owns only:

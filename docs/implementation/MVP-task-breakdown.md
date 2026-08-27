@@ -40,6 +40,7 @@ ownership, implementation scope, security gates, or the claims policy.
 ## Shared rules for every implementation task
 
 - Keep the MVP to exactly two equal Codex CLI peers and text messages.
+- Treat “exactly two” as a per-channel invariant: one device may serve independent endpoints across multiple local workspaces and multiple peers, but no channel becomes a group or shared-workspace protocol. Client and central relay may be physically separate; preserve the [topology addendum](../evidence/product-topology-and-scope-addendum.md).
 - Keep real Codex thread IDs, workspace IDs, names, and paths local to the
   client. The relay sees only opaque endpoint/mailbox handles and ciphertext.
 - Do not add a generic IR, dashboard, group chat, files, attachments, shared
@@ -53,6 +54,7 @@ ownership, implementation scope, security gates, or the claims policy.
   private keys, cookies, or `.env` files in Git.
 - `relay-a` is the logical name of the first deployment. Never write its IP or
   a production hostname into source, tests, docs, fixtures, or logs.
+- `device_code`/`user_code` are short-lived per-intent rendezvous inputs, not identity or long-term per-thread key-directory services; public prekeys are bounded bootstrap metadata with expiry and consume/burn lifecycle.
 - The approved Codex route is ADR 0003's Rust core plus stable
   `openai-codex` Python JSONL bridge. Never replace it with direct experimental
   App Server CLI/JSON-RPC, WebSocket, MCP, Remote Control, or private internals.

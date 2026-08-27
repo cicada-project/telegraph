@@ -41,6 +41,16 @@ approved the conditional companion route: a Rust core with the stable
 product route for planning; it does not approve direct use of the experimental
 App Server CLI, close R1/R4 conditions, or claim that a bridge exists.
 
+Architecture boundary revision (2026-08-24): the approved lightweight split
+keeps `crypto` as a provider/byte-level adapter. It does not add an unused
+`telegraph-protocol` dependency merely to satisfy a nominal graph edge. The
+`client` crate is the explicit composition boundary: it combines crypto
+outputs with the neutral protocol `Envelope` and keeps decrypted plaintext on
+the local endpoint path. This avoids formal-only dependencies and accidental
+coupling between provider state and relay framing. The revision does not
+change the product scope and does not authorize T3b, deployment, or an E2EE
+claim.
+
 ## Independent review disposition
 
 The independent review by `independent-subagent-rust-architecture-review` at
@@ -61,6 +71,11 @@ The product contract is exactly two equal Codex CLI clients exchanging text.
 Each client can own multiple local thread endpoints, but no parent/child,
 Master/Subagent, group, hand-off, command, file, attachment, shared workspace,
 external-chat, Web3, or generic cross-harness semantics are part of this MVP.
+This is a two-party-per-channel invariant, not a one-device/one-workspace
+limit: one device may serve independent local endpoints across multiple local
+workspaces and multiple peers, with separate state for every channel. The
+client and future central relay may be deployed at physically separate
+locations; see the [product topology and scope addendum](../evidence/product-topology-and-scope-addendum.md).
 R1 identifies a conditional companion path using a companion-owned Codex
 thread; it does not establish arbitrary existing-TUI attachment or peer input
 injection. R4 recommends a Signal-style asynchronous profile conditionally,
@@ -95,26 +110,37 @@ Dependency rules:
 
 - `protocol` has no Tokio, network, database, Codex, or crypto-provider
   dependency. It may depend on small serialization/error crates only.
-- `crypto` depends on `protocol` and a separately approved provider adapter;
-  it owns no HTTP or database code.
+- `crypto` depends only on the separately approved cryptographic provider and
+  its narrow reviewed crypto/storage dependencies. It is a provider/byte-level
+  adapter, owns no HTTP or database code, and does not construct or decode the
+  neutral protocol `Envelope`.
 - `store` persists typed local state and relay rows but does not decrypt or
   interpret Codex text. It must expose transactions needed for crash safety.
   `store::client_secret` contains only local endpoint/channel/account/session,
   prekey-private, and rollback-anchor state; `store::relay_opaque` contains
   only mailbox, pairing, public-prekey, and transport rows. Their types and
   modules are not interchangeable. The relay crate depends only on the
-  `relay_opaque` path; the client/crypto crates depend only on
-  `client_secret` for private state. No relay migration may contain client
-  secret-state columns.
-- `relay` depends on `protocol` and `store`; it never receives plaintext or
-  private key material.
-- `client` depends on `protocol`, `crypto`, and local `store`, and owns the
-  state machine that decides whether a decrypted message may be handed to a
-  local bridge.
+  `relay_opaque` path; the client owns the `client_secret` path for private
+  state, while crypto has no store dependency. No relay migration may contain
+  client secret-state columns, provider session state, or plaintext.
+- `relay` depends on `protocol` and the relay-opaque part of `store`; it never
+  receives plaintext, private key material, or provider session state.
+- `client` depends on `protocol`, `crypto`, and local `store`. It is the
+  explicit composition boundary for wrapping crypto-produced opaque
+  ciphertext in a protocol `Envelope`, and owns the state machine that decides
+  whether locally decrypted text may be handed to a local bridge.
 - `cli` depends on `client` and owns user interaction; it must not bypass the
   client state machine.
 - No crate may introduce a generic intermediate representation, a global
   control plane, or an implicit shared runtime between Reflex and Telegraph.
+
+The corresponding test responsibility follows the same boundary: protocol
+tests cover canonical neutral framing; crypto tests cover provider messages,
+opaque state, and byte bounds; client tests cover the real crypto-to-Envelope
+composition, channel state, and local handoff; relay/store tests remain opaque
+and must reject any plaintext or provider-session input. A dependency must not
+be added solely to make the graph appear compliant when no reviewed API uses
+it; such a boundary change requires an ADR revision.
 
 Manifest and lock ownership is explicit. T0 owns only the workspace root
 `Cargo.toml`, `rust-toolchain.toml`, `.cargo/config.toml`, and workspace CI.
@@ -312,6 +338,9 @@ transcript binding, independent safety-code/fingerprint confirmation, and the
 reviewed confirmation-MAC flow. The exact cryptographic profile and provider
 remain separate implementation-gate decisions; custom cryptographic
 composition is prohibited.
+Public prekeys are bounded per-pairing bootstrap metadata with explicit
+reservation and burn/reconcile lifecycle, not a long-term per-thread public-key
+directory or service.
 
 ### Codex companion boundary
 

@@ -1,13 +1,10 @@
 [workspace]
-# This is intentionally a virtual workspace during the T0 handoff window.
-# Boundary crates are named in metadata and excluded until their owners hand
-# over real manifests. Referencing a missing manifest would make every Cargo
-# command fail before T1-T4 can work in isolation.
+# The three reviewed boundary crates currently handed off to T0 are the only
+# workspace members. Relay, client, and CLI remain explicitly excluded until
+# their owners provide reviewed manifests.
 resolver = "3"
-members = ["crates/protocol"]
+members = ["crates/protocol", "crates/crypto", "crates/store"]
 exclude = [
-    "crates/crypto",
-    "crates/store",
     "crates/relay",
     "crates/client",
     "crates/cli",
@@ -58,10 +55,8 @@ expected_crates = [
     "client",
     "cli",
 ]
-delivered_crates = ["protocol"]
+delivered_crates = ["protocol", "crypto", "store"]
 excluded_until_manifest_handoff = [
-    "crates/crypto",
-    "crates/store",
     "crates/relay",
     "crates/client",
     "crates/cli",
